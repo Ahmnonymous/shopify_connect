@@ -1,0 +1,55 @@
+
+https://tm-ha.com/shopify/product.php
+
+api key: 1cf2061e227c64064b56bba2eaea71ec
+api pass: bc70b949cdf025c74a20103b97a08101
+
+apitoken: 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
+
+store name : https://2cb4e2-2.myshopify.com/
+
+version: 2023-07(latest)
+
+https://apikey:apitoken@storename/admin/api/2023-07/products.json
+
+https://1cf2061e227c64064b56bba2eaea71ec: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@2cb4e2-2.myshopify.com/admin/api/2023-07/products.json
+
+https://1cf2061e227c64064b56bba2eaea71ec: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@2cb4e2-2.myshopify.com/admin/api/2023-07/webhooks.json
+
+{
+  "webhook": {
+    "topic": "products/create",
+    "address": "https://tm-ha.com/shopify/product.php",
+    "format": "json"
+  }
+}
+
+
+
+    $webhook_url = 'https://2cb4e2-2.myshopify.com/admin/api/2023-07/webhooks.json';
+    $webhook_data = array(
+        'webhook' => array(
+            'topic' => 'products/create',
+            'address' => 'https://tm-ha.com/shopify/webhook_get.php', // Replace with the URL of your PHP script to handle the Shopify webhook
+            'format' => 'json'
+        )
+    );
+
+    $headers = array(
+        'Content-Type: application/json',
+        'Authorization: Basic ' . base64_encode('1cf2061e227c64064b56bba2eaea71ec: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')
+    );
+
+    $ch = curl_init($webhook_url);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($webhook_data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    // Check the response from the Shopify API for any error handling if required
+    // You can also log the response for debugging purposes
+    // error_log($response);
+

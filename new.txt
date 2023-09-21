@@ -1,0 +1,140 @@
+THE ISSUE IS THERE A THOUSANDS OF PRODUCTS GENERATED AFTER THE PROCEDURE "webhook_send" IS CREATED
+
+I have 
+
+send.php
+---------
+<?php
+require_once 'webhook_get.php';
+
+function webhook_send($product_id, $title, $price)
+{
+    $webhook_url = 'https://2cb4e2-2.myshopify.com/admin/api/2023-07/webhooks.json';
+    $webhook_data = array(
+        'webhook' => array(
+            'topic' => 'products/create',
+            'address' => 'https://tm-ha.com/shopify/webhook_get.php', // Replace with the URL of your PHP script to handle the Shopify webhook
+            'format' => 'json'
+        )
+    );
+
+    $headers = array(
+        'Content-Type: application/json',
+        'Authorization: Basic ' . base64_encode('1cf2061e227c64064b56bba2eaea71ec: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')
+    );
+
+    // Call the function to create a new product on Shopify
+    $response = createShopifyProduct($webhook_data);
+
+    $ch = curl_init($webhook_url);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($webhook_data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    //return @$response;
+}
+?>
+
+
+
+webhook_get.php
+---------------
+<?php
+define('SHOPIFY_API_KEY', '1cf2061e227c64064b56bba2eaea71ec');
+define('SHOPIFY_API_PASSWORD', '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');
+define('SHOPIFY_STORE_URL', 'https://2cb4e2-2.myshopify.com/admin/api/2023-07/products.json');
+
+function createShopifyProduct($data)
+{
+    $json_data = json_decode($data, true);
+
+    // Extract product data
+    $title = $json_data['title'];
+    $description = $json_data['body_html'];
+    $price = $json_data['variants'][0]['price'];
+
+    // Prepare the product data for Shopify API
+    $product_data = array(
+        'product' => array(
+            'title' => $title,
+            'body_html' => $description,
+            'variants' => array(
+                array(
+                    'price' => $price
+                )
+            )
+        )
+    );
+
+    // Send the product data to Shopify API to create a new product
+    $ch = curl_init(SHOPIFY_STORE_URL);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($product_data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        'Content-Type: application/json',
+        'Authorization: Basic ' . base64_encode(SHOPIFY_API_KEY . ':' . SHOPIFY_API_PASSWORD)
+    ));
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    // Check the response from the Shopify API for any error handling if required
+    // You can also log the response for debugging purposes
+    // error_log($response);
+
+    return $response;
+}
+
+// Handle the incoming webhook payload
+$data = file_get_contents('php://input');
+$response = createShopifyProduct($data);
+
+// Send a response back to acknowledge the webhook
+http_response_code(200);
+echo $response;
+
+
+
+i created procedure in the database
+--------------------------------------
+DELIMITER //
+
+CREATE PROCEDURE webhook_send(
+    IN product_id INT,
+    IN title VARCHAR(255),
+    IN price DECIMAL(10,2),
+    IN created_at DATETIME
+)
+BEGIN
+    -- Prepare the product data for Shopify API
+    DECLARE webhook_data JSON;
+
+    SET webhook_data = JSON_OBJECT(
+        'title', title,
+        'body_html', '',
+        'variants', JSON_ARRAY(
+            JSON_OBJECT('price', price)
+        )
+    );
+
+    -- Log the webhook data for debugging purposes
+    INSERT INTO webhook_logs (product_id, title, price, created_at, webhook_data)
+    VALUES (product_id, title, price, created_at, webhook_data);
+
+END //
+
+DELIMITER ;
+
+
+i created trigger on the table products
+----------------------------------------
+after_insert_products
+
+BEGIN
+    CALL webhook_send(NEW.id, NEW.product_id,NEW.title, NEW.price);
+END

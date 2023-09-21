@@ -1,0 +1,35 @@
+DELIMITER //
+
+CREATE PROCEDURE webhook_send(
+    IN product_id INT,
+    IN title VARCHAR(255),
+    IN price DECIMAL(10,2),
+    IN created_at DATETIME
+)
+BEGIN
+    -- Prepare the product data for Shopify API
+    DECLARE webhook_data JSON;
+
+    SET webhook_data = JSON_OBJECT(
+        'title', title,
+        'body_html', '',
+        'variants', JSON_ARRAY(
+            JSON_OBJECT('price', price)
+        )
+    );
+
+    -- Log the webhook data for debugging purposes
+    INSERT INTO webhook_logs (product_id, title, price, created_at, webhook_data)
+    VALUES (product_id, title, price, created_at, webhook_data);
+
+END //
+
+DELIMITER ;
+
+
+"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql" -u root -p SHOP
+
+
+{"title": "2147483647", "body_html": "", "variants": [{"price": "0.00"}]}
+
+{"title": "2147483647", "body_html": "", "variants": [{"price": "0.00"}]}
